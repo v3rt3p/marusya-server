@@ -1,0 +1,39 @@
+{
+  "name": "marusya-server",
+  "version": "1.0.0",
+  "description": "VK Capsula emulated backend",
+  "scripts": {
+    "start": "tsx src/main.ts"
+  },
+  "keywords": [],
+  "author": "radioegor146",
+  "license": "ISC",
+  "packageManager": "pnpm@10.23.0",
+  "dependencies": {
+    "@bksp/style-guide": "^1.5.0",
+    "@discordjs/opus": "^0.10.0",
+    "@sentry/node": "^10.53.1",
+    "@types/body-parser": "^1.19.6",
+    "@types/express": "^5.0.6",
+    "@types/multer": "^2.1.0",
+    "@types/node": "^25.8.0",
+    "@types/node-wav": "^0.0.4",
+    "@types/ws": "^8.18.1",
+    "body-parser": "^2.2.2",
+    "dotenv": "^17.4.2",
+    "eslint": "^9.39.4",
+    "express": "^5.2.1",
+    "multer": "^2.1.1",
+    "node-wav": "^0.0.2",
+    "openai": "^6.37.0",
+    "parse-multipart-data": "^1.5.0",
+    "pg": "^8.20.0",
+    "tslog": "^4.10.2",
+    "tsx": "^4.22.0",
+    "typeorm": "^0.3.29",
+    "typescript": "^6.0.3",
+    "ws": "^8.20.1",
+    "ws-server": "^1.0.0",
+    "zod": "^4.4.3"
+  }
+}
