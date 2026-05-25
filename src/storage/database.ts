@@ -56,6 +56,23 @@ export class DeviceStorage {
   async init (): Promise<void> {
     await this.dataSource.initialize()
   }
+
+  async saveConfig (deviceInfo: DeviceInfo): Promise<void> {
+    await this.dataSource.transaction(async manager => {
+      const deviceRepository = manager.getRepository(Device)
+      const device = await deviceRepository.findOne({
+        where: {
+          id: deviceInfo.id
+        }
+      })
+      if (device) {
+        device.config = deviceInfo.config
+        await deviceRepository.save(device)
+        return
+      }
+      throw new Error(`device ${deviceInfo.id} not found`)
+    })
+  }
 }
 
 function mapToDeviceInfo (device: Device): DeviceInfo {

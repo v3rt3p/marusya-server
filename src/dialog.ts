@@ -1,3 +1,4 @@
+import { Directive } from '@v3rt3p/types/directives'
 import { Sema } from 'async-sema'
 
 import { AudioMetadataBackend, AudioMetadataBackendSession, ProcessorBackend, ProcessorSession, STTBackend, STTBackendSession, TTSBackend } from './backend/backend'
@@ -19,15 +20,16 @@ export interface DialogProperties {
   tts: TTSBackend
 }
 
-export type DialogResult = ({
+export type DialogResult = {
+  directives: Directive[]
+  speech: Buffer
+  text: string,
+} & ({
   finished: false
 } | {
   finished: true,
   shouldListen: boolean
-}) & {
-  speech: Buffer
-  text: string,
-}
+})
 
 export class Dialog {
   private audioMetadataSession: AudioMetadataBackendSession | undefined
@@ -184,6 +186,7 @@ export class Dialog {
         if (this.state !== DialogState.CLOSED) {
           this.state = DialogState.CLOSED
           this.responsesQueue.push({
+            directives: [],
             finished: true,
             shouldListen: false,
             speech: Buffer.from([]),
@@ -205,6 +208,7 @@ export class Dialog {
           text: partialResponse.text
         }).then(result => {
           this.responsesQueue.push({
+            directives: partialResponse.directives,
             finished: partialResponse.finished,
             shouldListen: partialResponse.finished ? partialResponse.shouldListen : false,
             speech: Buffer.from(result.voiceOutput),
@@ -213,6 +217,7 @@ export class Dialog {
         }).catch(error => {
           this.logger.error('failed to synthesize: ', error)
           this.responsesQueue.push({
+            directives: partialResponse.directives,
             finished: partialResponse.finished,
             shouldListen: partialResponse.finished ? partialResponse.shouldListen : false,
             speech: Buffer.from([]),

@@ -9,9 +9,10 @@ const rawDeviceConfig = z.object({
     contentPrivacy: z.object({
       calendar: z.boolean().default(false),
       mail: z.boolean().default(false),
+      revision: z.number().default(100),
       telegram: z.boolean().default(false),
       vkMessages: z.boolean().default(false),
-      vkMessagesNotifications: z.boolean().default(false)
+      vkMessagesNotifications: z.boolean().default(false),
     }),
     general: z.object({
       alarmVolume: z.number().default(40),
@@ -34,6 +35,7 @@ const rawDeviceConfig = z.object({
       keywordSound: z.boolean().default(false),
       masterVolume: z.number().default(50),
       reminderSync: z.boolean().default(true),
+      revision: z.number().default(100),
       roomId: z.uuid().nullable().default(null),
       skillserverType: z.string().default(''),
       speakerCallsAvailable: z.boolean().default(true),
@@ -42,15 +44,18 @@ const rawDeviceConfig = z.object({
     }),
     nightMode: z.object({
       enabled: z.boolean().default(false),
+      revision: z.number().default(100),
       scheduled: z.boolean().default(false),
       startAt: z.number().default(79_200),
       stopAt: z.number().default(36_000)
     }),
     safeMode: z.object({
-      enabled: z.boolean().default(true)
+      enabled: z.boolean().default(true),
+      revision: z.number().default(100)
     }),
     spotify: z.object({
-      enabled: z.boolean().default(true)
+      enabled: z.boolean().default(true),
+      revision: z.number().default(100)
     }),
     stereo: z.object({
       autoReconnect: z.boolean().default(true),
@@ -61,12 +66,14 @@ const rawDeviceConfig = z.object({
       mode: z.string().default('master'),
       name: z.string().default(''),
       pairId: z.unknown().default(null),
+      revision: z.number().default(100),
       slaveChannel: z.string().default('front_right'),
       slaveId: z.string().default(''),
       slaveVolume: z.number().default(100),
       volume: z.number().default(100)
     }),
     telegram: z.object({
+      revision: z.number().default(100),
       telegramAuth: z.boolean().default(false),
       telegramPhone: z.string().default(''),
       telegramUsername: z.string().default('')
@@ -74,6 +81,7 @@ const rawDeviceConfig = z.object({
     vkCalls: z.object({
       available: z.boolean().default(true),
       enabled: z.boolean().default(true),
+      revision: z.number().default(100),
       ringVolume: z.number().default(40),
       speechVolume: z.number().default(40)
     }),

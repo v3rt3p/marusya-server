@@ -2,12 +2,14 @@ import bodyParser from 'body-parser'
 import express, { Request } from 'express'
 import { randomBytes, randomUUID } from 'node:crypto'
 import OpenAI from 'openai'
+import { WebSocketServer } from 'ws'
 import z from 'zod'
 
 import { BufferedAudioMetadataBackend } from './backend/audio-metadata/buffered'
 import { BasicProcessorBackend } from './backend/processors/basic'
 import { GigaAMSTTBackend } from './backend/stt/gigaam'
 import { OpenAITTSBackend } from './backend/tts/openai'
+import { convertContentPrivacyConfig, convertGeneralConfig, convertNightModeConfig, convertSafeModeConfig, convertSpotifyConfig, convertStereoConfig, convertTelegramConfig, convertVkCallsConfig } from './config'
 import { Dialog } from './dialog'
 import { getEnvironment } from './environment'
 import { getLogger } from './logger'
@@ -31,7 +33,9 @@ app.use((request, _, next) => {
   next()
 })
 
-app.use(bodyParser.json())
+app.use(bodyParser.json({
+  type: message => message.headers['content-type'] === 'application/json' || !message.headers['content-type']
+}))
 app.use(bodyParser.raw({
   type: ['audio/*', 'multipart/form-data']
 }))
@@ -47,7 +51,9 @@ function getQueryOrThrow (request: Request, id: string): string {
 function parseDeviceInfoIfAny (request: Request): RequestDeviceInfo | undefined {
   if (request.query['device_id']) {
     return {
-      deviceId: String(request.query['device_id']),
+      deviceId: String(Array.isArray(request.query['device_id'])
+        ? request.query['device_id'][0]
+        : request.query['device_id']),
       deviceVersion: request.query['device_ver'] ? String(request.query['device_ver']) : undefined,
       sessionId: request.query['session_id'] ? String(request.query['session_id']) : undefined
     }
@@ -120,45 +126,13 @@ app.get('/device/settings/v1/:device_id/:settings_id', (request, response) => {
           break
         }
         case 'content_privacy': {
-          result = [{
-            calendar: device.config.settings.contentPrivacy.calendar,
-            id: request.deviceInfo.deviceId,
-            mail: device.config.settings.contentPrivacy.mail,
-            revision: 1,
-            telegram: device.config.settings.contentPrivacy.telegram,
-            vk_messages: device.config.settings.contentPrivacy.vkMessages,
-            vk_messages_notifications: device.config.settings.contentPrivacy.vkMessagesNotifications
-          }]
+          result = [convertContentPrivacyConfig(request.deviceInfo.deviceId,
+            device.config.settings.contentPrivacy)]
           break
         }
         case 'general': {
-          result = [{
-            alarm_volume: device.config.settings.general.alarmVolume,
-            allow_music_from_app: device.config.settings.general.allowMusicFromApp,
-            baby_monitor_calls_available: device.config.settings.general.babyMonitorCallsAvailable,
-            blackbox_depth: device.config.settings.general.blackboxDepth,
-            bt_handsfree: device.config.settings.general.btHandsfree,
-            children_mode: device.config.settings.general.childrenMode,
-            clock_brightness: device.config.settings.general.clockBrightness,
-            clock_enabled: device.config.settings.general.clockEnabled,
-            clock_night_brightness: device.config.settings.general.clockNightBrightness,
-            coordinates: device.config.settings.general.coordinates,
-            demomode_enabled_at: device.config.settings.general.demomodeEnabledAt,
-            groups: device.config.settings.general.groups,
-            home_id: device.config.settings.general.homeId,
-            id: request.deviceInfo.deviceId,
-            is_blocked: device.config.settings.general.isBlocked,
-            keyword_sound: device.config.settings.general.keywordSound,
-            master_volume: device.config.settings.general.masterVolume,
-            name: device.name,
-            reminder_sync: device.config.settings.general.reminderSync,
-            revision: 59,
-            room_id: device.config.settings.general.roomId,
-            skillserver_type: device.config.settings.general.skillserverType,
-            speaker_calls_available: device.config.settings.general.speakerCallsAvailable,
-            timezone: device.config.settings.general.timezone,
-            upnp_discovery: device.config.settings.general.upnpDiscovery
-          }]
+          result = [convertGeneralConfig(request.deviceInfo.deviceId, device.name,
+            device.config.settings.general)]
           break
         }
         case 'night_light': {
@@ -166,70 +140,28 @@ app.get('/device/settings/v1/:device_id/:settings_id', (request, response) => {
           break
         }
         case 'night_mode': {
-          result = [{
-            enabled: device.config.settings.nightMode.enabled,
-            id: request.deviceInfo.deviceId,
-            revision: 1,
-            scheduled: device.config.settings.nightMode.scheduled,
-            start_at: device.config.settings.nightMode.startAt,
-            stop_at: device.config.settings.nightMode.stopAt
-          }]
+          result = [convertNightModeConfig(request.deviceInfo.deviceId,
+            device.config.settings.nightMode)]
           break
         }
         case 'safe_mode': {
-          result = [{
-            enabled: device.config.settings.safeMode.enabled,
-            id: request.deviceInfo.deviceId,
-            revision: 1
-          }]
+          result = [convertSafeModeConfig(request.deviceInfo.deviceId, device.config.settings.safeMode)]
           break
         }
         case 'spotify': {
-          result = [{
-            enabled: device.config.settings.spotify.enabled,
-            id: request.deviceInfo.deviceId,
-            revision: 1
-          }]
+          result = [convertSpotifyConfig(request.deviceInfo.deviceId, device.config.settings.spotify)]
           break
         }
         case 'stereo': {
-          result = [{
-            auto_reconnect: device.config.settings.stereo.autoReconnect,
-            channel: device.config.settings.stereo.channel,
-            enabled: false,
-            id: request.deviceInfo.deviceId,
-            master_id: device.config.settings.stereo.masterId,
-            mic_muted: device.config.settings.stereo.micMuted,
-            mode: device.config.settings.stereo.mode,
-            name: device.config.settings.stereo.name,
-            pair_id: device.config.settings.stereo.pairId,
-            revision: 1,
-            slave_channel: device.config.settings.stereo.slaveChannel,
-            slave_id: device.config.settings.stereo.slaveId,
-            slave_volume: device.config.settings.stereo.slaveVolume,
-            volume: device.config.settings.stereo.volume
-          }]
+          result = [convertStereoConfig(request.deviceInfo.deviceId, device.config.settings.stereo)]
           break
         }
         case 'telegram': {
-          result = [{
-            id: request.deviceInfo.deviceId,
-            revision: 1,
-            telegram_auth: device.config.settings.telegram.telegramAuth,
-            telegram_phone: device.config.settings.telegram.telegramPhone,
-            telegram_username: device.config.settings.telegram.telegramUsername
-          }]
+          result = [convertTelegramConfig(request.deviceInfo.deviceId, device.config.settings.telegram)]
           break
         }
         case 'vk_calls': {
-          result = [{
-            available: device.config.settings.vkCalls.available,
-            enabled: device.config.settings.vkCalls.enabled,
-            id: request.deviceInfo.deviceId,
-            revision: 2,
-            ring_volume: device.config.settings.vkCalls.ringVolume,
-            speech_volume: device.config.settings.vkCalls.speechVolume
-          }]
+          result = [convertVkCallsConfig(request.deviceInfo.deviceId, device.config.settings.vkCalls)]
           break
         }
         default: {
@@ -237,6 +169,135 @@ app.get('/device/settings/v1/:device_id/:settings_id', (request, response) => {
           break
         }
       }
+
+      response.status(200).json({
+        qid: randomBytes(16).toString('hex'),
+        result
+      })
+    })
+    .catch(error => {
+      logger.error('failed to get config: ', error)
+      response.status(500).end()
+    })
+})
+
+const generalConfigType = z.object({
+  master_volume: z.number().optional()
+})
+
+app.put('/device/settings/v1/:device_id/:settings_id/:device_id_2', (request, response) => {
+  if (!request.deviceInfo) {
+    response.status(500).end()
+    return
+  }
+
+  if (request.deviceInfo.deviceId !== request.params['device_id']) {
+    response.status(401).end()
+    return
+  }
+
+  let result: unknown
+
+  storage.getOrCreate(request.deviceInfo.deviceId,
+    getDefaultDeviceConfig())
+    .then(device => {
+      const oldConfig = structuredClone(device.config)
+
+      switch (request.params['settings_id']) {
+        case 'alarm_music': {
+          break
+        }
+        case 'alarms': {
+          break
+        }
+        case 'content_privacy': {
+          device.config.settings.contentPrivacy.revision++
+
+          result = {
+            new: convertContentPrivacyConfig(request.deviceInfo.deviceId, device.config.settings.contentPrivacy),
+            old: convertContentPrivacyConfig(request.deviceInfo.deviceId, oldConfig.settings.contentPrivacy)
+          }
+          break
+        }
+        case 'general': {
+          const update = generalConfigType.parse(request.body)
+          if (update.master_volume) {
+            device.config.settings.general.masterVolume = update.master_volume
+          }
+
+          device.config.settings.general.revision++
+
+          result = {
+            new: convertGeneralConfig(request.deviceInfo.deviceId, device.name, device.config.settings.general),
+            old: convertGeneralConfig(request.deviceInfo.deviceId, device.name, oldConfig.settings.general)
+          }
+          break
+        }
+        case 'night_light': {
+          break
+        }
+        case 'night_mode': {
+          device.config.settings.nightMode.revision++
+
+          result = {
+            new: convertNightModeConfig(request.deviceInfo.deviceId, device.config.settings.nightMode),
+            old: convertNightModeConfig(request.deviceInfo.deviceId, oldConfig.settings.nightMode)
+          }
+          break
+        }
+        case 'safe_mode': {
+          device.config.settings.safeMode.revision++
+
+          result = {
+            new: convertSafeModeConfig(request.deviceInfo.deviceId, device.config.settings.safeMode),
+            old: convertSafeModeConfig(request.deviceInfo.deviceId, oldConfig.settings.safeMode)
+          }
+          break
+        }
+        case 'spotify': {
+          device.config.settings.spotify.revision++
+
+          result = {
+            new: convertSpotifyConfig(request.deviceInfo.deviceId, device.config.settings.spotify),
+            old: convertSpotifyConfig(request.deviceInfo.deviceId, oldConfig.settings.spotify)
+          }
+          break
+        }
+        case 'stereo': {
+          device.config.settings.stereo.revision++
+
+          result = {
+            new: convertStereoConfig(request.deviceInfo.deviceId, device.config.settings.stereo),
+            old: convertStereoConfig(request.deviceInfo.deviceId, oldConfig.settings.stereo)
+          }
+          break
+        }
+        case 'telegram': {
+          device.config.settings.telegram.revision++
+
+          result = {
+            new: convertTelegramConfig(request.deviceInfo.deviceId, device.config.settings.telegram),
+            old: convertTelegramConfig(request.deviceInfo.deviceId, oldConfig.settings.telegram)
+          }
+          break
+        }
+        case 'vk_calls': {
+          device.config.settings.vkCalls.revision++
+
+          result = {
+            new: convertVkCallsConfig(request.deviceInfo.deviceId, device.config.settings.vkCalls),
+            old: convertVkCallsConfig(request.deviceInfo.deviceId, oldConfig.settings.vkCalls)
+          }
+          break
+        }
+        default: {
+          break
+        }
+      }
+
+      storage.saveConfig(device)
+        .then(() => logger.debug('config saved'))
+        .catch(error => logger.error('failed to save config: ', error))
 
       response.status(200).json({
         qid: randomBytes(16).toString('hex'),
@@ -547,80 +608,172 @@ app.post('/phrase/commands', (request, response) => {
   const streamId = randomUUID()
   streamIdToSpeechBuffer.set(streamId, result.speech)
 
-  if (result.finished) {
-    if (!result.shouldListen) {
-      dialog.close()
-      dialogIdToDialogMap.delete(dialogId)
-      deviceIdToActiveDialogIdMap.delete(request.deviceInfo.deviceId)
-    }
-    response.status(200).json({
-      qid: randomBytes(16).toString('hex'),
-      result: {
-        commands: [{
-          blocking: true,
-          encoder: 'opus',
-          encoder_bitrate: null,
-          encoder_frame_size: null,
-          force_say: false,
-          kws_skip: null,
-          long_reader_request: false,
-          model_name: 'tts',
-          normalize: true,
-          speed: 1,
-          stream_hls: false,
-          stream_id: streamId,
-          text: result.text,
-          type: 'tts'
-        }, ...(result.shouldListen
-          ? [
-              {
-                blocking: true,
-                callback_data: JSON.stringify({
-                  dialogId
-                }),
-                min_waiting_time: 4,
-                mute_activation_sound: false,
-                type: 'listen'
-              }
-            ]
-          : [])]
-      }
-    })
-    return
+  if (result.finished && !result.shouldListen) {
+    dialog.close()
+    dialogIdToDialogMap.delete(dialogId)
+    deviceIdToActiveDialogIdMap.delete(request.deviceInfo.deviceId)
   }
 
-  response.status(200).json({
-    qid: randomBytes(16).toString('hex'),
-    result: {
-      commands: [{
-        blocking: true,
-        encoder: 'opus',
-        encoder_bitrate: null,
-        encoder_frame_size: null,
-        force_say: false,
-        kws_skip: null,
-        long_reader_request: false,
-        model_name: 'tts',
-        normalize: true,
-        speed: 1,
-        stream_hls: false,
-        stream_id: streamId,
-        text: result.text,
-        type: 'tts'
-      }],
-      page_token: randomUUID()
-    }
-  })
+  storage.getOrCreate(request.deviceInfo.deviceId,
+    getDefaultDeviceConfig())
+    .then(device => {
+      const directives: unknown[] = []
+
+      let needConfigUpdate = false
+
+      for (const directive of result.directives) {
+        switch (directive.type) {
+          case 'bluetoothDisable': {
+            directives.push({
+              turn_on: false,
+              type: 'bluetooth_pair'
+            })
+            break
+          }
+          case 'bluetoothEnable': {
+            directives.push({
+              turn_on: true,
+              type: 'bluetooth_pair'
+            })
+            break
+          }
+          case 'customMarusya': {
+            directives.push(directive.data)
+            break
+          }
+          case 'customQuasar': {
+            continue
+          }
+          case 'soundLouder': {
+            needConfigUpdate = true
+            device.config.settings.general.masterVolume =
+              Math.min(100, device.config.settings.general.masterVolume + 10)
+            device.config.settings.general.revision++
+            storage.saveConfig(device)
+              .then(() => logger.debug('config saved'))
+              .catch(error => logger.error('failed to save config: ', error))
+            directives.push({
+              level: device.config.settings.general.masterVolume,
+              type: 'volume_control'
+            })
+            break
+          }
+          case 'soundQuieter': {
+            needConfigUpdate = true
+            device.config.settings.general.masterVolume = Math.max(10, device.config.settings.general.masterVolume - 10)
+            device.config.settings.general.revision++
+            storage.saveConfig(device)
+              .then(() => logger.debug('config saved'))
+              .catch(error => logger.error('failed to save config: ', error))
+            directives.push({
+              level: device.config.settings.general.masterVolume,
+              type: 'volume_control'
+            })
+            break
+          }
+          case 'soundSetLevel': {
+            needConfigUpdate = true
+            device.config.settings.general.masterVolume = directive.level * 10
+            device.config.settings.general.revision++
+            storage.saveConfig(device)
+              .then(() => logger.debug('config saved'))
+              .catch(error => logger.error('failed to save config: ', error))
+            directives.push({
+              level: device.config.settings.general.masterVolume,
+              type: 'volume_control'
+            })
+            continue
+          }
+        }
+      }
+
+      if (needConfigUpdate) {
+        directives.push({
+          settings: convertGeneralConfig(request.deviceInfo.deviceId, device.name, device.config.settings.general),
+          type: 'general_settings_v1'
+        })
+      }
+
+      response.status(200).json({
+        qid: randomBytes(16).toString('hex'),
+        result: {
+          ...(result.finished
+            ? {}
+            : {
+                page_token: randomUUID()
+              }),
+          commands: [
+            ...directives,
+            {
+              blocking: true,
+              encoder: 'opus',
+              encoder_bitrate: null,
+              encoder_frame_size: null,
+              force_say: false,
+              kws_skip: null,
+              long_reader_request: false,
+              model_name: 'tts',
+              normalize: true,
+              speed: 1,
+              stream_hls: false,
+              stream_id: streamId,
+              text: result.text,
+              type: 'tts'
+            }, ...(result.finished && result.shouldListen
+              ? [
+                  {
+                    blocking: true,
+                    callback_data: JSON.stringify({
+                      dialogId
+                    }),
+                    min_waiting_time: 4,
+                    mute_activation_sound: false,
+                    type: 'listen'
+                  }
+                ]
+              : [])],
+        }
+      })
+    })
+    .catch(error => {
+      logger.error('failed to fetch config: ', error)
+      response.status(500).end()
+    })
 })
 
-app.get('/connect', (_, response) => {
-  response.status(500).end()
-})
-
-app.listen(environment.PORT, error => {
+const server = app.listen(environment.PORT, error => {
   if (error) {
     logger.fatal(`failed to start server on :${environment.PORT}`)
     return
   }
   logger.info(`server started on :${environment.PORT}`)
+})
+
+const wsServer = new WebSocketServer({
+  noServer: true
+})
+
+server.on('upgrade', (request, socket, head) => {
+  if (request.url?.startsWith('/connect')) {
+    wsServer.handleUpgrade(request, socket, head, client => {
+      wsServer.emit('connection', client, request)
+    })
+    return
+  }
+  socket.destroy()
+})
+
+wsServer.addListener('connection', (connection, request) => {
+  connection.addEventListener('open', () => {
+    logger.info('WS opened')
+  })
+  connection.addEventListener('close', reason => {
+    logger.info('WS closed: ', reason.code)
+  })
+  connection.addEventListener('error', error => {
+    logger.warn('WS error: ', error)
+  })
+  connection.addEventListener('message', message => {
+    logger.debug(`WS message: ${message.data}`)
+  })
 })
