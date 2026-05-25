@@ -10,7 +10,7 @@ const environmentType = z.object({
 
   PROCESSOR_BASIC_URL: z.url().default('http://quasar.int.bksp.in:17003/process'),
 
-  STT_GIGAAM_URL: z.url().default('ws://ru-lnsk-hpc-gpu.int.bksp.in:8080'),
+  STT_GIGAAM_URL: z.url().default('ws://ru-lnsk-hpc-gpu.int.bksp.in:8081'),
   TTS_OPENAI_API_KEY: z.string().default('test'),
   TTS_OPENAI_BASE_URL: z.url().default('http://localhost:8081'),
   TTS_OPENAI_MODEL: z.string().default(''),

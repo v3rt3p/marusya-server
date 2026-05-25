@@ -8,7 +8,7 @@ export function parseAudioData (chunk: Buffer, format: string): [number, Buffer]
     if (parsed.head.channelCount !== 1 || parsed.head.sampleRate !== 16_000) {
       throw new Error(`invalid head: ${JSON.stringify(parsed.head)}`)
     }
-    return [parsed.head.sampleRate, parsed.data]
+    return [parsed.head.sampleRate, parsed.data.subarray(26)]
   }
   if (format.startsWith('audio/wav')) {
     const parsed = decode(chunk)

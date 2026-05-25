@@ -19,6 +19,7 @@
     "@types/node": "^25.8.0",
     "@types/node-wav": "^0.0.4",
     "@types/ws": "^8.18.1",
+    "async-sema": "^3.1.1",
     "body-parser": "^2.2.2",
     "dotenv": "^17.4.2",
     "eslint": "^9.39.4",

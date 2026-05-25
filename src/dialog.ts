@@ -1,5 +1,8 @@
+import { Sema } from 'async-sema'
+
 import { AudioMetadataBackend, AudioMetadataBackendSession, ProcessorBackend, ProcessorSession, STTBackend, STTBackendSession, TTSBackend } from './backend/backend'
 import { getLogger } from './logger'
+import { Notifier } from './notifier'
 
 enum DialogState {
   READY_TO_START_VOICE,
@@ -29,6 +32,12 @@ export type DialogResult = ({
 export class Dialog {
   private audioMetadataSession: AudioMetadataBackendSession | undefined
 
+  private readonly chunkProcessingLock = new Sema(1)
+
+  private readonly indexUpdatedNotifier = new Notifier()
+
+  private lastProcessedChunk: number = -1
+
   private lastText: string = ''
 
   private readonly logger = getLogger<Dialog>()
@@ -43,7 +52,7 @@ export class Dialog {
 
   private sttSession: STTBackendSession | undefined
 
-  private voiceChunks: [Buffer, string][] = []
+  private voiceChunks: [Buffer, string, number][] = []
 
   private voiceFinished: boolean = false
 
@@ -53,6 +62,7 @@ export class Dialog {
     this.sttSession?.close()
     this.audioMetadataSession?.close()
     this.processorSesssion?.close()
+    this.lastProcessedChunk = -1
     this.state = DialogState.CLOSED
   }
 
@@ -93,20 +103,19 @@ export class Dialog {
       }
     })
 
-    while (this.voiceChunks.length > 0) {
-      const [chunk, format] = this.voiceChunks[0] ?? [Buffer.from([]), '']
-      this.voiceChunks = this.voiceChunks.slice(1)
-
-      await Promise.all([this.audioMetadataSession.processChunk(chunk, format),
-        this.sttSession.transcribeChunk(chunk, format)])
+    for (const [chunk, format, index] of this.voiceChunks) {
+      this.processChunk(chunk, format, index).catch(error => {
+        this.logger.error('failed to process audio chunk: ', error)
+      })
     }
+    this.voiceChunks = []
 
     this.state = DialogState.PROCESSING_VOICE
   }
 
-  handleVoiceChunk (chunk: Buffer, format: string): boolean {
+  handleVoiceChunk (chunk: Buffer, format: string, index: number): boolean {
     if (this.state === DialogState.STARTING_VOICE_PROCESSING) {
-      this.voiceChunks.push([chunk, format])
+      this.voiceChunks.push([chunk, format, index])
       return false
     }
 
@@ -118,8 +127,7 @@ export class Dialog {
       throw new Error('not in a state to handle voice chunk')
     }
 
-    Promise.all([this.audioMetadataSession.processChunk(chunk, format),
-      this.sttSession.transcribeChunk(chunk, format)]).catch(error => {
+    this.processChunk(chunk, format, index).catch(error => {
       this.logger.error('failed to process audio chunk: ', error)
     })
 
@@ -133,12 +141,35 @@ export class Dialog {
     })
   }
 
+  async processChunk (chunk: Buffer, format: string, index: number): Promise<void> {
+    if (!this.audioMetadataSession || !this.sttSession) {
+      throw new Error('not in a state to handle voice chunk')
+    }
+
+    while (index !== this.lastProcessedChunk + 1) {
+      this.logger.debug(`Waiting for new index: ${index} != ${this.lastProcessedChunk + 1}`)
+      await this.indexUpdatedNotifier.wait()
+    }
+
+    await this.chunkProcessingLock.acquire()
+    try {
+      await Promise.all([this.audioMetadataSession.processChunk(chunk, format),
+        this.sttSession.transcribeChunk(chunk, format)])
+      this.logger.debug(`Processed chunk ${index}`)
+      this.lastProcessedChunk = index
+      this.indexUpdatedNotifier.notifyAll()
+    } finally {
+      this.chunkProcessingLock.release()
+    }
+  }
+
   private async processText (text: string): Promise<void> {
     this.state = DialogState.PROCESSING_TEXT
     this.sttSession?.close()
     this.sttSession = undefined
     const metadata = await this.audioMetadataSession?.finish() ?? {}
     this.audioMetadataSession = undefined
+    this.lastProcessedChunk = -1
 
     let processorSession = this.processorSesssion
 
