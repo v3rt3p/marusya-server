@@ -1,4 +1,5 @@
 import { Span } from '@sentry/node'
+import { ProcessorPartialResponseWebSocketMessage, ProcessorProcessWebSocketMessage } from '@v3rt3p/types/processor'
 import { EventEmitter } from 'node:stream'
 
 export type AliceDirective = object
@@ -11,22 +12,9 @@ export interface ProcessorBackend {
   openSession(parentSpan?: Span): Promise<ProcessorSession>;
 }
 
-export type ProcessorPartialResponse = {
-  directives: AliceDirective[];
-  finished: false;
-  text: string;
-} | {
-  directives: AliceDirective[];
-  finished: true;
-  requireMoreInput: boolean;
-  text: string;
-}
+export type ProcessorPartialResponse = ProcessorPartialResponseWebSocketMessage['data']
 
-export interface ProcessorRequest {
-  isExternalEvent?: boolean;
-  metadata: object;
-  text: string;
-}
+export type ProcessorRequest = ProcessorProcessWebSocketMessage['data']
 
 export interface ProcessorSession extends EventEmitter<ProcessorSessionEvents> {
   close(): void;

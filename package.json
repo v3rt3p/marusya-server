@@ -1,5 +1,5 @@
 {
-  "name": "marusya-server",
+  "name": "@v3rt3p/marusya-server",
   "version": "1.0.0",
   "description": "VK Capsula emulated backend",
   "scripts": {
@@ -19,6 +19,7 @@
     "@types/node": "^25.8.0",
     "@types/node-wav": "^0.0.4",
     "@types/ws": "^8.18.1",
+    "@v3rt3p/types": "github:v3rt3p/types#1.0.3",
     "async-sema": "^3.1.1",
     "body-parser": "^2.2.2",
     "dotenv": "^17.4.2",

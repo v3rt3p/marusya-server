@@ -194,7 +194,7 @@ export class Dialog {
 
       processorSession.addListener('partialResponse', partialResponse => {
         if (partialResponse.finished) {
-          if (partialResponse.requireMoreInput) {
+          if (partialResponse.shouldListen) {
             this.state = DialogState.READY_TO_START_VOICE
           } else {
             this.state = DialogState.CLOSED
@@ -206,7 +206,7 @@ export class Dialog {
         }).then(result => {
           this.responsesQueue.push({
             finished: partialResponse.finished,
-            shouldListen: partialResponse.finished ? partialResponse.requireMoreInput : false,
+            shouldListen: partialResponse.finished ? partialResponse.shouldListen : false,
             speech: Buffer.from(result.voiceOutput),
             text: partialResponse.text
           })
@@ -214,7 +214,7 @@ export class Dialog {
           this.logger.error('failed to synthesize: ', error)
           this.responsesQueue.push({
             finished: partialResponse.finished,
-            shouldListen: partialResponse.finished ? partialResponse.requireMoreInput : false,
+            shouldListen: partialResponse.finished ? partialResponse.shouldListen : false,
             speech: Buffer.from([]),
             text: partialResponse.text
           })
