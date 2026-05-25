@@ -4,7 +4,7 @@ import { randomBytes, randomUUID } from 'node:crypto'
 import OpenAI from 'openai'
 import z from 'zod'
 
-import { LoggingAudioMetadataBackend } from './backend/audio-metadata/logging'
+import { BufferedAudioMetadataBackend } from './backend/audio-metadata/buffered'
 import { BasicProcessorBackend } from './backend/processors/basic'
 import { GigaAMSTTBackend } from './backend/stt/gigaam'
 import { OpenAITTSBackend } from './backend/tts/openai'
@@ -342,8 +342,8 @@ const dialogIdToDialogMap: Map<string, Dialog> = new Map()
 const deviceIdToActiveDialogIdMap: Map<string, string> = new Map()
 
 const backends = {
-  // audioMetadata: new BufferedAudioMetadataBackend(environment.AUDIO_METADATA_URLS),
-  audioMetadata: new LoggingAudioMetadataBackend(),
+  audioMetadata: new BufferedAudioMetadataBackend(environment.AUDIO_METADATA_URLS),
+  // audioMetadata: new LoggingAudioMetadataBackend(),
   processor: new BasicProcessorBackend(environment.PROCESSOR_BASIC_URL),
   stt: new GigaAMSTTBackend(environment.STT_GIGAAM_URL),
   tts: new OpenAITTSBackend(new OpenAI({
