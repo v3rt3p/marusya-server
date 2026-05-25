@@ -23,7 +23,7 @@ export interface DialogProperties {
 export type DialogResult = {
   directives: Directive[]
   speech: Buffer
-  text: string,
+  text: null | string,
 } & ({
   finished: false
 } | {
@@ -203,6 +203,16 @@ export class Dialog {
             this.state = DialogState.CLOSED
             this.close()
           }
+        }
+        if (!partialResponse.text) {
+          this.responsesQueue.push({
+            directives: partialResponse.directives,
+            finished: partialResponse.finished,
+            shouldListen: partialResponse.finished ? partialResponse.shouldListen : false,
+            speech: Buffer.from([]),
+            text: null
+          })
+          return
         }
         this.properties.tts.synthesize({
           text: partialResponse.text

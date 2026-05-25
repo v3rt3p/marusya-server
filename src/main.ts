@@ -704,22 +704,25 @@ app.post('/phrase/commands', (request, response) => {
               }),
           commands: [
             ...directives,
-            {
-              blocking: true,
-              encoder: 'opus',
-              encoder_bitrate: null,
-              encoder_frame_size: null,
-              force_say: false,
-              kws_skip: null,
-              long_reader_request: false,
-              model_name: 'tts',
-              normalize: true,
-              speed: 1,
-              stream_hls: false,
-              stream_id: streamId,
-              text: result.text,
-              type: 'tts'
-            }, ...(result.finished && result.shouldListen
+            ...(result.text === null
+              ? []
+              : [{
+                  blocking: true,
+                  encoder: 'opus',
+                  encoder_bitrate: null,
+                  encoder_frame_size: null,
+                  force_say: false,
+                  kws_skip: null,
+                  long_reader_request: false,
+                  model_name: 'tts',
+                  normalize: true,
+                  speed: 1,
+                  stream_hls: false,
+                  stream_id: streamId,
+                  text: result.text,
+                  type: 'tts'
+                }]),
+            ...(result.finished && result.shouldListen
               ? [
                   {
                     blocking: true,
