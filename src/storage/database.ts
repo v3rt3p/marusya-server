@@ -98,7 +98,7 @@ export class DeviceStorage {
           config.settings.general.revision++
         }
         if (config !== undefined) {
-          device.config = deviceConfig
+          device.config = config
         }
         await deviceRepository.save(device)
         return mapToDeviceInfo(device)
