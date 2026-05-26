@@ -81,6 +81,10 @@ export class Dialog {
     return item ?? null
   }
 
+  async handleEventText (eventText: string): Promise<void> {
+    await this.processText(eventText, true)
+  }
+
   async handleStartVoice (): Promise<void> {
     if (this.state !== DialogState.READY_TO_START_VOICE) {
       throw new Error('not in a state to start voice')
@@ -99,7 +103,7 @@ export class Dialog {
 
     this.sttSession.setCallback(result => {
       if (result.endOfUtt) {
-        this.processText(result.text).catch(error => {
+        this.processText(result.text, false).catch(error => {
           this.logger.warn('failed to process text: ', error)
         })
       }
@@ -165,7 +169,7 @@ export class Dialog {
     }
   }
 
-  private async processText (text: string): Promise<void> {
+  private async processText (text: string, isExternalEvent: boolean): Promise<void> {
     this.state = DialogState.PROCESSING_TEXT
     this.sttSession?.close()
     this.sttSession = undefined
@@ -240,8 +244,9 @@ export class Dialog {
     this.processorSesssion = processorSession
 
     await processorSession.process({
+      isExternalEvent,
       metadata,
-      text,
+      text
     })
   }
 }

@@ -12,6 +12,8 @@
   "dependencies": {
     "@bksp/style-guide": "^1.5.0",
     "@discordjs/opus": "^0.10.0",
+    "@elysia/openapi": "^1.4.15",
+    "@elysiajs/node": "^1.4.5",
     "@sentry/node": "^10.53.1",
     "@types/body-parser": "^1.19.6",
     "@types/express": "^5.0.6",
@@ -23,6 +25,7 @@
     "async-sema": "^3.1.1",
     "body-parser": "^2.2.2",
     "dotenv": "^17.4.2",
+    "elysia": "^1.4.28",
     "eslint": "^9.39.4",
     "express": "^5.2.1",
     "multer": "^2.1.1",

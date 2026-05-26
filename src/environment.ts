@@ -2,10 +2,11 @@ import 'dotenv/config'
 import { z } from 'zod'
 
 const environmentType = z.object({
+  API_PORT: z.string().default('31105').transform(Number),
+
   AUDIO_METADATA_URLS: z.string().default('http://speaker-identifier:9010/audio-metadata').transform(urls => urls.split(',').filter(Boolean)),
 
   DATABASE_URL: z.string().default(''),
-
   PORT: z.string().default('666').transform(Number),
 
   PROCESSOR_BASIC_URL: z.url().default('http://quasar.int.bksp.in:17003/process'),

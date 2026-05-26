@@ -32,6 +32,14 @@ export class DeviceStorage {
     })
   }
 
+  async getAll (): Promise<DeviceInfo[]> {
+    return await this.dataSource.transaction(async manager => {
+      const deviceRepository = manager.getRepository(Device)
+      const devices = await deviceRepository.find()
+      return devices.map(device => mapToDeviceInfo(device))
+    })
+  }
+
   async getOrCreate (deviceId: string, defaultConfig: DeviceConfig): Promise<DeviceInfo> {
     return await this.dataSource.transaction(async manager => {
       const deviceRepository = manager.getRepository(Device)
@@ -71,6 +79,31 @@ export class DeviceStorage {
         return
       }
       throw new Error(`device ${deviceInfo.id} not found`)
+    })
+  }
+
+  async updateNameAndConfig (deviceId: string, name: string | undefined,
+    config: DeviceConfig | undefined): Promise<DeviceInfo> {
+    return await this.dataSource.transaction(async manager => {
+      const deviceRepository = manager.getRepository(Device)
+      const device = await deviceRepository.findOne({
+        where: {
+          id: deviceId
+        }
+      })
+      if (device) {
+        if (name !== undefined) {
+          device.name = name
+          config = deviceConfig.parse(device.config)
+          config.settings.general.revision++
+        }
+        if (config !== undefined) {
+          device.config = deviceConfig
+        }
+        await deviceRepository.save(device)
+        return mapToDeviceInfo(device)
+      }
+      throw new Error(`device ${deviceId} not found`)
     })
   }
 }
