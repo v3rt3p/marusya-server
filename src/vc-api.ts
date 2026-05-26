@@ -230,6 +230,7 @@ export function registerVCApiRoutes (app: Application, server: Server,
   })
 
   const generalConfigType = z.object({
+    coordinates: z.array(z.number()).optional(),
     master_volume: z.number().optional()
   })
 
@@ -271,6 +272,9 @@ export function registerVCApiRoutes (app: Application, server: Server,
             const update = generalConfigType.parse(request.body)
             if (update.master_volume) {
               device.config.settings.general.masterVolume = update.master_volume
+            }
+            if (update.coordinates) {
+              device.config.settings.general.coordinates = update.coordinates
             }
 
             device.config.settings.general.revision++
