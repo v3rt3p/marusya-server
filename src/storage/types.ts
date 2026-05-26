@@ -21,7 +21,7 @@ const rawDeviceConfig = z.object({
       blackboxDepth: z.number().default(30),
       btHandsfree: z.boolean().default(false),
       childrenMode: z.boolean().default(false),
-      clockBrightness: z.number().default(-1),
+      clockBrightness: z.number().default(100),
       clockEnabled: z.boolean().default(true),
       clockNightBrightness: z.number().default(-1),
       coordinates: z.array(z.number()).default([
